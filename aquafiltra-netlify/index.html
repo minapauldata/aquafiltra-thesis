@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AquaFiltra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="icon" type="image/png" href="aquafiltra_logo_themed.png">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #070d1a;
+      --card: #0c1525;
+      --border: #152035;
+      --accent: #00d4ff;
+      --green: #00ff9d;
+      --red: #ff4757;
+      --yellow: #ffd700;
+      --text: #8fa8c8;
+      --white: #e8f4ff;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      background:var(--bg); color:var(--text);
+      font-family:'Syne',sans-serif; min-height:100vh;
+      display:flex; flex-direction:column;
+    }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.025) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(0,212,255,0.025) 1px,transparent 1px);
+      background-size:40px 40px; pointer-events:none; z-index:0;
+    }
+    nav {
+      padding:16px 24px; border-bottom:1px solid var(--border);
+      background:rgba(7,13,26,0.97); display:flex; align-items:center; gap:10px;
+      position:relative; z-index:1;
+    }
+    .logo-dot { width:8px; height:8px; background:var(--red); border-radius:50%; flex-shrink:0; }
+    .logo-text { font-family:'Space Mono',monospace; font-size:13px; color:var(--white); }
+    .page {
+      flex:1; display:flex; align-items:center; justify-content:center;
+      padding:32px 20px; position:relative; z-index:1;
+    }
+    .box {
+      background:var(--card); border:1px solid var(--border);
+      border-top:3px solid var(--red);
+      padding:40px 32px; max-width:420px; width:100%; text-align:center;
+      box-shadow:0 0 40px rgba(255,71,87,0.06);
+    }
+    .state { display:none; }
+    .state.active { display:block; }
+    .icon { font-size:52px; margin-bottom:20px; }
+    .title { font-size:1.5rem; font-weight:800; margin-bottom:10px; color:var(--white); }
+    .title.red    { color:var(--red); }
+    .title.green  { color:var(--green); }
+    .title.yellow { color:var(--yellow); }
+    .msg { font-size:13px; color:var(--text); line-height:1.8; margin-bottom:24px; }
+    .checklist {
+      text-align:left; margin:0 auto 24px; display:inline-block;
+      font-family:'Space Mono',monospace; font-size:11px; line-height:2;
+    }
+    .checklist li { list-style:none; display:flex; align-items:center; gap:8px; }
+    .checklist li span.num { color:var(--yellow); }
+    .status-box {
+      border:1px solid var(--border); padding:12px 16px;
+      font-family:'Space Mono',monospace; font-size:11px; color:#4a6a7a;
+      margin-bottom:20px;
+    }
+    .contact-box {
+      margin-bottom:20px; padding:12px 16px;
+      border:1px solid #1e3a5f;
+      font-family:'Space Mono',monospace; font-size:11px; line-height:2;
+    }
+    .contact-box .label { color:#8fa8c8; margin-bottom:4px; }
+    .contact-box .name  { color:var(--white); font-weight:700; margin-bottom:4px; }
+    .contact-box a { color:var(--accent); text-decoration:none; transition:opacity 0.2s; }
+    .contact-box a:hover { opacity:0.7; }
+    .btn {
+      display:inline-block; background:transparent; border:1px solid var(--accent);
+      color:var(--accent); font-family:'Space Mono',monospace; font-size:11px;
+      padding:10px 24px; cursor:pointer; transition:all 0.2s; text-decoration:none;
+      letter-spacing:1px;
+    }
+    .btn:hover { background:rgba(0,212,255,0.08); }
+    .spinner {
+      width:40px; height:40px; border:3px solid var(--border);
+      border-top:3px solid var(--accent); border-radius:50%;
+      animation:spin 1s linear infinite; margin:0 auto 20px;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+    .dots span {
+      display:inline-block; width:6px; height:6px; border-radius:50%;
+      background:var(--accent); margin:0 3px;
+      animation:pulse 1.2s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay:0.2s; }
+    .dots span:nth-child(3) { animation-delay:0.4s; }
+    footer {
+      padding:20px; text-align:center; font-family:'Space Mono',monospace;
+      font-size:10px; color:#4a6a7a; border-top:1px solid var(--border);
+      position:relative; z-index:1;
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo-dot" id="navDot"></div>
+  <div class="logo-text">💧 AquaFiltra Monitor</div>
+</nav>
+
+<div class="page">
+  <div class="box">
+
+    <!-- CONNECTING STATE -->
+    <div class="state active" id="stateConnecting">
+      <div class="spinner"></div>
+      <div class="title">Connecting...</div>
+      <div class="msg">Checking AquaFiltra server status.<br>Please wait a moment.</div>
+      <div class="dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <!-- OFFLINE STATE -->
+    <div class="state" id="stateOffline">
+      <div class="icon">🔌</div>
+      <div class="title red">Server Offline</div>
+      <div class="msg">
+        The AquaFiltra server is currently unavailable.<br><br>
+        To start the server, make sure the following are running on the host PC:
+      </div>
+      <ul class="checklist">
+        <li><span class="num">①</span> <span style="color:#ffd700;">php artisan serve</span></li>
+        <li><span class="num">②</span> <span style="color:#ffd700;">ngrok http 8000</span></li>
+        <li><span class="num">③</span> ESP32 is powered on</li>
+      </ul>
+      <div class="status-box">
+        Retrying in <span id="countdown">10</span> seconds...
+      </div>
+      <div class="contact-box">
+        <div class="label">Need help? Contact:</div>
+        <div class="name">Paul Albert Mina</div>
+        <a href="https://www.facebook.com/paul.albert.r.mina" style="color:#00d4ff;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+  Facebook
+</a>
+&nbsp;·&nbsp;
+<a href="mailto:minapaul@gmail.com" style="color:#00d4ff;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/></svg>
+  Email
+</a>
+      </div>
+      <button class="btn" onclick="tryConnect()">↺ Retry Now</button>
+    </div>
+
+    <!-- ONLINE STATE -->
+    <div class="state" id="stateOnline">
+      <div class="icon">✅</div>
+      <div class="title green">Server Online!</div>
+      <div class="msg">AquaFiltra server detected.<br>Redirecting you to the dashboard...</div>
+      <div class="dots"><span></span><span></span><span></span></div>
+    </div>
+
+  </div>
+</div>
+
+<footer>AquaFiltra · Thesis Project 2026 · Built with Laravel + ESP32</footer>
+
+<script>
+  // ⚠️ CHANGE THIS to your current Ngrok URL every time you restart Ngrok
+  const NGROK_URL = 'https://marlys-scientistic-realizingly.ngrok-free.dev';
+
+  let countdownTimer = null;
+  let seconds = 10;
+
+  function showState(id) {
+    document.querySelectorAll('.state').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const dot = document.getElementById('navDot');
+    if (id === 'stateOffline')    { dot.style.background = '#ff4757'; dot.style.animation = 'none'; }
+    if (id === 'stateConnecting') { dot.style.background = '#00d4ff'; dot.style.animation = 'pulse 1s infinite'; }
+    if (id === 'stateOnline')     { dot.style.background = '#00ff9d'; dot.style.animation = 'pulse 1s infinite'; }
+  }
+
+  function startCountdown() {
+    clearInterval(countdownTimer);
+    seconds = 10;
+    document.getElementById('countdown').textContent = seconds;
+    countdownTimer = setInterval(() => {
+      seconds--;
+      document.getElementById('countdown').textContent = seconds;
+      if (seconds <= 0) { clearInterval(countdownTimer); tryConnect(); }
+    }, 1000);
+  }
+
+  function tryConnect() {
+    clearInterval(countdownTimer);
+    showState('stateConnecting');
+    fetch(NGROK_URL + '/api/sensor/latest', {
+      headers: { 'ngrok-skip-browser-warning': 'true' },
+      signal: AbortSignal.timeout(6000)
+    })
+    .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+    .then(data => {
+      if (data && (data.id || data.ph_level)) {
+        showState('stateOnline');
+        setTimeout(() => { window.location.href = NGROK_URL; }, 2000);
+      } else { throw new Error(); }
+    })
+    .catch(() => { showState('stateOffline'); startCountdown(); });
+  }
+
+  tryConnect();
+</script>
+
+</body>
+</html>
